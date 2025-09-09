@@ -18,31 +18,37 @@ const USER_TYPES = {
 };
 
 // INSCRIPTION PATIENT
-router.post("/client", async (req, res) => {
-  console.log("📥 Nouvelle requête POST /client");
-  console.log("Données reçues:", req.body);   
+router.post("/patient", async (req, res) => {
+  console.log("📥 Nouvelle requête POST /patient");
+  console.log("Données reçues:", req.body);
 
-  const { firstName, lastName, email, password, phoneNumber, role } = req.body;
+  const {
+    firstName,
+    lastName,
+    email,
+    password,
+    phoneNumber,
+    role,
+    profilePicture,
+    // Champs supplémentaires pour docteur
+    licenseNumber,
+    experienceYears,
+    specialtyId,
+    consultationFee,
+  } = req.body;
 
   if (!password) {
-    console.log("❌ Mot de passe manquant");
     return res.status(400).json({ message: "Password is required" });
   }
 
   try {
     // Vérifier si email ou téléphone déjà utilisé
     const existingUser = await User.findOne({
-      where: {
-        [Op.or]: [{ email }, { phoneNumber }],
-      },
+      where: { [Op.or]: [{ email }, { phoneNumber }] },
     });
-
     if (existingUser) {
-      console.log("❌ Email ou téléphone déjà utilisé:", existingUser.email, existingUser.phoneNumber);
       return res.status(400).json({ message: "Email or phone number already used" });
     }
-
-    console.log("Type de req.body:", typeof req.body);
 
     // Créer l'utilisateur
     const newUser = await User.create({
@@ -51,10 +57,27 @@ router.post("/client", async (req, res) => {
       phoneNumber,
       email,
       password,
-      role: role || "patient",
+      role,
+      profilePicture: profilePicture || null,
     });
 
-    console.log("✅ Utilisateur créé:", newUser.id, newUser.email);
+    // Si c’est un DOCTOR → on remplit aussi doctors
+    if (role === "doctor") {
+      if (!licenseNumber || !specialtyId) {
+        return res.status(400).json({
+          message: "Doctors must provide licenseNumber and specialtyId",
+        });
+      }
+
+      await Doctor.create({
+        userId: newUser.id,
+        licenseNumber,
+        experienceYears: experienceYears || 0,
+        specialtyId,
+        consultationFee: consultationFee || 0,
+        createdAt: new Date(),
+      });
+    }
 
     // Générer le token JWT
     const token = jwt.sign(
@@ -65,14 +88,11 @@ router.post("/client", async (req, res) => {
 
     const { password: _, ...userWithoutPassword } = newUser.toJSON();
 
-    console.log("🔑 JWT généré pour:", newUser.email);
-
     res.status(201).json({
       message: "User created successfully",
       token,
       user: userWithoutPassword,
     });
-
   } catch (error) {
     console.error("❌ Erreur lors de l’inscription :", error);
     res.status(500).json({ message: "Server error" });

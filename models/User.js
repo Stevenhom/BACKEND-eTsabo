@@ -25,6 +25,7 @@ module.exports = (sequelize) => {
       type: DataTypes.ENUM('patient', 'doctor', 'pharmacy'), 
       allowNull: false 
     },
+    profilePicture: { type: DataTypes.TEXT, field: 'profile_picture', defaultValue: null },
     createdAt: { type: DataTypes.DATE, field: 'created_at' }
   }, {
     tableName: 'users',
@@ -48,6 +49,11 @@ module.exports = (sequelize) => {
   // Méthode pour comparer les mots de passe
   User.prototype.comparePassword = async function (candidatePassword) {
     return await bcrypt.compare(candidatePassword, this.password);
+  };
+
+  // Association avec Doctor
+  User.associate = (models) => {
+    User.hasOne(models.Doctor, { foreignKey: 'userId' });
   };
 
   return User;
