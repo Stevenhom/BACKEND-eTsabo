@@ -3,7 +3,7 @@
 const express = require("express");
 const router = express.Router();
 const jwt = require("jsonwebtoken");
-const { User } = require('../models'); 
+const { User, Doctor } = require('../models'); 
 const { upload, uploadPath } = require("../middlewares/multerMiddleware");
 const fs = require("fs");
 const { Op } = require("sequelize");
