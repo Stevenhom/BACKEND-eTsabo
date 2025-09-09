@@ -12,16 +12,15 @@ const path = require("path");
 
 // Définition des types d’utilisateurs (enum côté back)
 const USER_TYPES = {
-  PATIENT: 1,
-  DOCTOR: 2,
-  ADMIN: 3,
+  PATIENT: 'PATIENT',
+  DOCTOR: 'DOCTOR',
+  PHARMACY: 'PHARMACY',
 };
 
-// INSCRIPTION PATIENT
-router.post("/patient", async (req, res) => {
-  console.log("📥 Nouvelle requête POST /patient");
-  console.log("Données reçues:", req.body);
 
+// INSCRIPTION PATIENT/DOCTOR avec upload photo de profil
+router.post("/user", upload.single("profilePicture"), async (req, res) => {
+  console.log("📥 Nouvelle requête POST /user");
   const {
     firstName,
     lastName,
@@ -29,7 +28,6 @@ router.post("/patient", async (req, res) => {
     password,
     phoneNumber,
     role,
-    profilePicture,
     // Champs supplémentaires pour docteur
     licenseNumber,
     experienceYears,
@@ -38,16 +36,27 @@ router.post("/patient", async (req, res) => {
   } = req.body;
 
   if (!password) {
+    // Supprimer le fichier uploadé si présent
+    if (req.file) fs.unlinkSync(req.file.path);
     return res.status(400).json({ message: "Password is required" });
   }
 
+  const transaction = await User.sequelize.transaction();
+  let profilePicturePath = null;
   try {
     // Vérifier si email ou téléphone déjà utilisé
     const existingUser = await User.findOne({
       where: { [Op.or]: [{ email }, { phoneNumber }] },
     });
     if (existingUser) {
+      if (req.file) fs.unlinkSync(req.file.path);
+      await transaction.rollback();
       return res.status(400).json({ message: "Email or phone number already used" });
+    }
+
+    // Gérer le chemin de la photo de profil
+    if (req.file) {
+      profilePicturePath = path.relative(path.resolve(), req.file.path).replace(/\\/g, '/');
     }
 
     // Créer l'utilisateur
@@ -58,12 +67,14 @@ router.post("/patient", async (req, res) => {
       email,
       password,
       role,
-      profilePicture: profilePicture || null,
-    });
+      profilePicture: profilePicturePath,
+    }, { transaction });
 
     // Si c’est un DOCTOR → on remplit aussi doctors
-    if (role === "doctor") {
+    if (role && role.toLowerCase() === "doctor") {
       if (!licenseNumber || !specialtyId) {
+        if (req.file) fs.unlinkSync(req.file.path);
+        await transaction.rollback();
         return res.status(400).json({
           message: "Doctors must provide licenseNumber and specialtyId",
         });
@@ -76,8 +87,10 @@ router.post("/patient", async (req, res) => {
         specialtyId,
         consultationFee: consultationFee || 0,
         createdAt: new Date(),
-      });
+      }, { transaction });
     }
+
+    await transaction.commit();
 
     // Générer le token JWT
     const token = jwt.sign(
@@ -94,6 +107,11 @@ router.post("/patient", async (req, res) => {
       user: userWithoutPassword,
     });
   } catch (error) {
+    // Supprimer le fichier uploadé si présent
+    if (req.file) {
+      try { fs.unlinkSync(req.file.path); } catch (e) {}
+    }
+    if (transaction) await transaction.rollback();
     console.error("❌ Erreur lors de l’inscription :", error);
     res.status(500).json({ message: "Server error" });
   }
