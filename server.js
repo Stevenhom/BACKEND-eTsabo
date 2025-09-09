@@ -30,7 +30,7 @@ sequelize.authenticate()
   });
 
 // Routes
-app.use('/auth', require('./routes/authRoutes'));
+app.use('/api/v1/auth', require('./routes/authRoutes'));
 //app.use('/auth', require('./routes/forgotPasswordRoutes'));
 //app.use('/auth', require('./routes/resetPasswordRoutes'));
 

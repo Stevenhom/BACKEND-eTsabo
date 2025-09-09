@@ -18,10 +18,9 @@ const USER_TYPES = {
 };
 
 // INSCRIPTION PATIENT
-// INSCRIPTION PATIENT
 router.post("/client", async (req, res) => {
   console.log("📥 Nouvelle requête POST /client");
-  console.log("Données reçues:", req.body);
+  console.log("Données reçues:", req.body);   
 
   const { firstName, lastName, email, password, phoneNumber, role } = req.body;
 
