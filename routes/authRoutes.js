@@ -4,7 +4,7 @@ const express = require("express");
 const router = express.Router();
 const jwt = require("jsonwebtoken");
 const { User, Doctor } = require('../models'); 
-const { upload, uploadPath } = require("../middlewares/multerMiddleware");
+const { upload, resolveUploadPath } = require("../middlewares/multerMiddleware");
 const fs = require("fs");
 const { Op } = require("sequelize");
 
@@ -17,10 +17,8 @@ const USER_TYPES = {
   PHARMACY: 'PHARMACY',
 };
 
-
 // INSCRIPTION PATIENT/DOCTOR avec upload photo de profil
 router.post("/user", upload.single("profilePicture"), async (req, res) => {
-  console.log("📥 Nouvelle requête POST /user");
   const {
     firstName,
     lastName,
@@ -28,55 +26,58 @@ router.post("/user", upload.single("profilePicture"), async (req, res) => {
     password,
     phoneNumber,
     role,
-    // Champs supplémentaires pour docteur
     licenseNumber,
     experienceYears,
     specialtyId,
-    consultationFee,
+    consultationFee
   } = req.body;
 
   if (!password) {
-    // Supprimer le fichier uploadé si présent
     if (req.file) fs.unlinkSync(req.file.path);
     return res.status(400).json({ message: "Password is required" });
   }
 
   const transaction = await User.sequelize.transaction();
-  let profilePicturePath = null;
   try {
-    // Vérifier si email ou téléphone déjà utilisé
     const existingUser = await User.findOne({
-      where: { [Op.or]: [{ email }, { phoneNumber }] },
+      where: { [Op.or]: [{ email }, { phoneNumber }] }
     });
+
     if (existingUser) {
       if (req.file) fs.unlinkSync(req.file.path);
       await transaction.rollback();
       return res.status(400).json({ message: "Email or phone number already used" });
     }
 
-    // Gérer le chemin de la photo de profil
-    if (req.file) {
-      profilePicturePath = path.relative(path.resolve(), req.file.path).replace(/\\/g, '/');
-    }
-
-    // Créer l'utilisateur
     const newUser = await User.create({
       firstName,
       lastName,
       phoneNumber,
       email,
       password,
-      role,
-      profilePicture: profilePicturePath,
+      role
     }, { transaction });
 
-    // Si c’est un DOCTOR → on remplit aussi doctors
-    if (role && role.toLowerCase() === "doctor") {
+    // Renommage du fichier uploadé si photo de profil
+    let profilePicturePath = null;
+    if (req.file && req.query.uploadType === "profile") {
+      const ext = path.extname(req.file.originalname);
+      const newFileName = `${newUser.id}${ext}`;
+      const newPath = path.join(resolveUploadPath("profile"), newFileName);
+
+      fs.renameSync(req.file.path, newPath);
+      profilePicturePath = path.relative(path.resolve(), newPath).replace(/\\/g, "/");
+
+      await newUser.update({ profilePicture: profilePicturePath }, { transaction });
+    }
+
+    // Si DOCTOR → créer l’entrée dans doctors
+    if (role.toLowerCase() === "doctor") {
       if (!licenseNumber || !specialtyId) {
         if (req.file) fs.unlinkSync(req.file.path);
         await transaction.rollback();
         return res.status(400).json({
-          message: "Doctors must provide licenseNumber and specialtyId",
+          message: "Doctors must provide licenseNumber and specialtyId"
         });
       }
 
@@ -86,13 +87,12 @@ router.post("/user", upload.single("profilePicture"), async (req, res) => {
         experienceYears: experienceYears || 0,
         specialtyId,
         consultationFee: consultationFee || 0,
-        createdAt: new Date(),
+        createdAt: new Date()
       }, { transaction });
     }
 
     await transaction.commit();
 
-    // Générer le token JWT
     const token = jwt.sign(
       { id: newUser.id, role: newUser.role },
       process.env.JWT_SECRET,
@@ -104,10 +104,9 @@ router.post("/user", upload.single("profilePicture"), async (req, res) => {
     res.status(201).json({
       message: "User created successfully",
       token,
-      user: userWithoutPassword,
+      user: userWithoutPassword
     });
   } catch (error) {
-    // Supprimer le fichier uploadé si présent
     if (req.file) {
       try { fs.unlinkSync(req.file.path); } catch (e) {}
     }
@@ -116,7 +115,6 @@ router.post("/user", upload.single("profilePicture"), async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 });
-
 
 // CONNEXION
 router.post("/login", async (req, res) => {
