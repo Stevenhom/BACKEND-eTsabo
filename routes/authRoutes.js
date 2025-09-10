@@ -25,6 +25,8 @@ router.post("/user", upload.single("profilePicture"), async (req, res) => {
     email,
     password,
     phoneNumber,
+    adresse,
+    birthDate,
     role,
     licenseNumber,
     experienceYears,
@@ -55,6 +57,8 @@ router.post("/user", upload.single("profilePicture"), async (req, res) => {
       phoneNumber,
       email,
       password,
+      adresse,
+      birthDate,
       role
     }, { transaction });
 
