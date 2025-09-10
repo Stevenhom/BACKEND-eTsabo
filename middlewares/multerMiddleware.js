@@ -30,7 +30,6 @@ const storage = multer.diskStorage({
   },
   filename: (req, file, cb) => {
     const userId = req.query.userId || "temp";
-    console.log("UserID for upload:", userId);
     const timestamp = Date.now();
     const ext = path.extname(file.originalname);
     cb(null, `${userId}_${timestamp}${ext}`);

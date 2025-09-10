@@ -124,38 +124,28 @@ router.post("/user", upload.single("profilePicture"), async (req, res) => {
 router.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
+    const clientType = req.headers['x-client'] || 'web';
 
-    // Vérifier si l'utilisateur existe
     const user = await User.findOne({ where: { email } });
     if (!user) {
-      return res
-        .status(400)
-        .json({ message: "Email ou mot de passe invalide" });
+      return res.status(400).json({ message: "Email ou mot de passe invalide" });
     }
 
-    // Vérifier si user.password est bien une string
     if (typeof user.password !== "string") {
-      return res.status(500).json({
-        message: "Erreur serveur : problème avec le hash du mot de passe",
-      });
+      return res.status(500).json({ message: "Erreur serveur : problème avec le hash du mot de passe" });
     }
 
-    // Vérifier le mot de passe avec la méthode du modèle
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
-      return res
-        .status(400)
-        .json({ message: "Email ou mot de passe invalide" });
+      return res.status(400).json({ message: "Email ou mot de passe invalide" });
     }
 
-    // Générer un token JWT
     const token = jwt.sign(
       { id: user.id, role: user.role },
       process.env.JWT_SECRET,
-      { expiresIn: process.env.JWT_EXPIRATION || "1h" }
+      { expiresIn: clientType === 'desktop' ? '30d' : '10m' }
     );
 
-    // Supprimer le password du retour
     const { password: _, ...userWithoutPassword } = user.toJSON();
 
     res.json({
