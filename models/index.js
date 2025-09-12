@@ -7,8 +7,10 @@ const User = UserModel(sequelize);
 const Doctor = DoctorModel(sequelize);
 const MedicalSpecialty = MedicalSpecialtyModel(sequelize);
 
-// Associations si nécessaire
-Doctor.belongsTo(User, { foreignKey: 'user_id' });
+
+// Associations nécessaires pour les jointures
+User.hasOne(Doctor, { foreignKey: 'userId' });
+Doctor.belongsTo(User, { foreignKey: 'userId' });
 Doctor.belongsTo(MedicalSpecialty, { foreignKey: 'specialty_id' });
 
 module.exports = {

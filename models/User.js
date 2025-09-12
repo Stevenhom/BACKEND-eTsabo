@@ -22,7 +22,7 @@ module.exports = (sequelize) => {
     birthDate: { type: DataTypes.DATE, field: 'birth_date' },
     phoneNumber: { type: DataTypes.STRING, field: 'phone_number' },
     role: { 
-      type: DataTypes.ENUM('patient', 'doctor', 'pharmacy'), 
+      type: DataTypes.ENUM('PATIENT', 'DOCTOR', 'PHARMACY'), 
       allowNull: false 
     },
     profilePicture: { type: DataTypes.TEXT, field: 'profile_picture', defaultValue: null },
