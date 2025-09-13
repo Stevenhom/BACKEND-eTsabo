@@ -34,6 +34,7 @@ sequelize.authenticate()
 app.use('/api/v1/auth', require('./routes/authRoutes'));
 app.use('/api/v1/medical-specialties', require('./routes/medicalSpecialityRoutes'));
 app.use('/api/v1/users', require('./routes/userRoutes'));
+app.use('/api/v1/appointments', require('./routes/appointmentRoutes'));
 //app.use('/auth', require('./routes/forgotPasswordRoutes'));
 //app.use('/auth', require('./routes/resetPasswordRoutes'));
 
