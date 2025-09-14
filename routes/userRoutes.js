@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { User, Doctor, MedicalSpecialty } = require('../models');
 const { Op } = require('sequelize');
+const { buildSequelizeWhere } = require('../utils/utils');
 
 // GET /api/v1/users : récupère tous les users avec doctor (left join)
 router.get('/', async (req, res) => {
@@ -53,53 +54,17 @@ router.get('/role', async (req, res) => {
     } catch (e) {
       console.warn('Erreur de parsing des filtres:', e);
     }
-
-    console.log('Filtres reçus :', filters);
-
-    // 🔧 Construction du where Sequelize
-    const where = { role };
-
-    for (const field in filters) {
-      const conditions = filters[field];
-      if (!Array.isArray(conditions) || conditions.length === 0) continue;
-
-      const { value, matchMode } = conditions[0];
-      if (value === null || value === undefined || value === '') continue;
-
-      // Vérifie que le champ existe dans le modèle User
-      if (!User.rawAttributes[field]) {
-        console.warn(`Champ inconnu dans User : ${field} — ignoré`);
-        continue;
-      }
-
-      switch (matchMode) {
-        case 'startsWith':
-          where[field] = { [Op.iLike]: `${value}%` };
-          break;
-        case 'contains':
-          where[field] = { [Op.iLike]: `%${value}%` };
-          break;
-        case 'endsWith':
-          where[field] = { [Op.iLike]: `%${value}` };
-          break;
-        case 'equals':
-          where[field] = value;
-          break;
-        case 'dateIs':
-          where[field] = { [Op.eq]: value };
-          break;
-        default:
-          console.warn(`MatchMode non géré : ${matchMode}`);
-      }
-    }
-
+    const where = {
+      role,
+      ...buildSequelizeWhere(filters, User.rawAttributes)
+    };
     // 🔗 Construction des relations
     const include = role === 'DOCTOR'
       ? [{
-          model: Doctor,
-          required: false,
-          include: [{ model: MedicalSpecialty, required: false }]
-        }]
+        model: Doctor,
+        required: false,
+        include: [{ model: MedicalSpecialty, required: false }]
+      }]
       : [{ model: Doctor, required: false }];
 
     // 📦 Requête Sequelize
