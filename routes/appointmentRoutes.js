@@ -1,7 +1,7 @@
 const { stripSeconds, buildSequelizeWhere } = require('../utils/utils');
 const express = require('express');
 const router = express.Router();
-const { Appointment, User, TeleConsultation, VideoSession } = require('../models');
+const { Appointment, User, TeleConsultation, VideoSession, Prescription } = require('../models');
 const { Op } = require('sequelize');
 const sequelize = require('../models').sequelize;
 
@@ -106,7 +106,7 @@ router.patch('/:id/status', async (req, res) => {
     const transaction = await sequelize.transaction();
     try {
         const { id } = req.params;
-        const { status, mode = 'VIDEO', notes = '' } = req.body;
+        const { status, mode = 'VIDEO', notes = '', prescriptionContent } = req.body;
 
         const allowedStatuses = ['REQUESTED', 'SCHEDULED', 'CANCELED', 'COMPLETED'];
         if (!allowedStatuses.includes(status)) {
@@ -130,16 +130,15 @@ router.patch('/:id/status', async (req, res) => {
 
         let teleconsultation = null;
         let videoSession = null;
+        let prescription = null;
 
         if (status === 'SCHEDULED') {
-            // Création de la téléconsultation
             teleconsultation = await TeleConsultation.create({
                 appointmentId: appointment.id,
                 mode,
                 notes
             }, { transaction });
 
-            // Création de la session vidéo
             const roomName = `appointment-${appointment.id}-${Date.now()}`;
             videoSession = await VideoSession.create({
                 teleconsultationId: teleconsultation.id,
@@ -149,13 +148,32 @@ router.patch('/:id/status', async (req, res) => {
             }, { transaction });
         }
 
+        if (status === 'COMPLETED') {
+            teleconsultation = await TeleConsultation.findOne({
+                where: { appointmentId: appointment.id },
+                transaction
+            });
+
+            if (!teleconsultation) {
+                await transaction.rollback();
+                return res.status(404).json({ error: 'Téléconsultation introuvable pour ce rendez-vous.' });
+            }
+
+            const content = prescriptionContent || 'Prescription à définir';
+            prescription = await Prescription.create({
+                teleconsultationId: teleconsultation.id,
+                content
+            }, { transaction });
+        }
+
         await transaction.commit();
 
         res.json({
             message: `Statut mis à jour en ${status}.`,
             appointment,
             teleconsultation,
-            videoSession
+            videoSession,
+            prescription
         });
     } catch (error) {
         await transaction.rollback();

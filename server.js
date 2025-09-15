@@ -36,6 +36,7 @@ app.use('/api/v1/medical-specialties', require('./routes/medicalSpecialityRoutes
 app.use('/api/v1/users', require('./routes/userRoutes'));
 app.use('/api/v1/appointments', require('./routes/appointmentRoutes'));
 app.use('/api/v1/teleconsultations', require('./routes/teleconsultationRoutes'));
+app.use('/api/v1/prescriptions', require('./routes/prescriptionRoutes'));
 //app.use('/auth', require('./routes/forgotPasswordRoutes'));
 //app.use('/auth', require('./routes/resetPasswordRoutes'));
 
