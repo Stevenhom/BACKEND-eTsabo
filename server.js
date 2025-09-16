@@ -7,11 +7,11 @@ require('dotenv').config();
 const http = require('http');
 const { Server } = require('socket.io');
 const chatSocket = require('./sockets/chat.socket');
-const server = http.createServer(app);
 
 // Créer une instance d'Express
 const app = express();
 const PORT = process.env.PORT || 5000;
+const server = http.createServer(app);
 
 // Middleware pour parser les requêtes JSON
 app.use(cors({
