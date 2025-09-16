@@ -6,7 +6,7 @@ const DoctorModel = require('./Doctor');
 const MedicalSpecialtyModel = require('./MedicalSpecialty');
 const AppointmentModel = require('./Appointment');
 const VideoSessionModel = require('./VideoSession');
-const TeleconsultationModel = require('./TeleConsultation');
+const TeleconsultationModel = require('./Teleconsultation');
 const PrescriptionModel = require('./Prescription');
 
 // Modèles du chat
