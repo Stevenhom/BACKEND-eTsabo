@@ -4,6 +4,9 @@
 const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
+const http = require('http');
+const { Server } = require('socket.io');
+const chatSocket = require('./sockets/chat.socket');
 
 // Créer une instance d'Express
 const app = express();
@@ -37,10 +40,17 @@ app.use('/api/v1/users', require('./routes/userRoutes'));
 app.use('/api/v1/appointments', require('./routes/appointmentRoutes'));
 app.use('/api/v1/teleconsultations', require('./routes/teleconsultationRoutes'));
 app.use('/api/v1/prescriptions', require('./routes/prescriptionRoutes'));
+app.use('/api/v1/chat', require('./routes/chatRoutes'));
 //app.use('/auth', require('./routes/forgotPasswordRoutes'));
 //app.use('/auth', require('./routes/resetPasswordRoutes'));
 
-// Démarrer le serveur
-app.listen(PORT, () => {
-  console.log(`🚀 Serveur démarré sur http://localhost:${PORT}`);
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: { origin: '*' }
+});
+
+chatSocket(io);
+
+server.listen(PORT, () => {
+  console.log(`🚀 Serveur + WebSocket lancé sur http://localhost:${PORT}`);
 });
