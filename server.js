@@ -15,7 +15,7 @@ const server = http.createServer(app);
 
 // Middleware pour parser les requêtes JSON
 app.use(cors({
-  origin: ['http://localhost:4200'], // adapte selon ton frontend
+  origin: ['http://localhost:4200', 'https://frontend-e-tsabo.vercel.app'], // adapte selon ton frontend
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
   credentials: true
 }));
@@ -52,7 +52,7 @@ app.use('/api/v1/chat', require('./routes/chatRoutes'));
 
 const io = new Server(server, {
   cors: {
-    origin: ['http://localhost:4200'],
+    origin: ['http://localhost:4200', 'https://frontend-e-tsabo.vercel.app'],
     methods: ['GET', 'POST'],
     credentials: true
   }
